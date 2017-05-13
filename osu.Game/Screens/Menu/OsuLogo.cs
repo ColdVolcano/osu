@@ -33,7 +33,7 @@ namespace osu.Game.Screens.Menu
 
         private readonly Container colourAndTriangles;
 
-        private readonly MenuVisualisation visualizer;
+        private readonly LogoVisualisation visualizer;
 
         public Action Action;
 
@@ -92,7 +92,7 @@ namespace osu.Game.Screens.Menu
                             AutoSizeAxes = Axes.Both,
                             Children = new Drawable[]
                             {
-                                visualizer = new MenuVisualisation(),
+                                visualizer = new LogoVisualisation(),
                                 new BufferedContainer
                                 {
                                     AutoSizeAxes = Axes.Both,

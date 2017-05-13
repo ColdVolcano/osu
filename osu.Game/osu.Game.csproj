@@ -227,6 +227,7 @@
     <Compile Include="Screens\Backgrounds\BackgroundScreenEmpty.cs" />
     <Compile Include="Screens\Charts\ChartInfo.cs" />
     <Compile Include="Screens\Edit\Editor.cs" />
+    <Compile Include="Screens\Menu\LogoVisualisation.cs" />
     <Compile Include="Screens\Play\HotkeyRetryOverlay.cs" />
     <Compile Include="Screens\Play\SquareGraph.cs" />
     <Compile Include="Screens\Ranking\ResultsPage.cs" />
@@ -240,7 +241,6 @@
     <Compile Include="Screens\Menu\Intro.cs" />
     <Compile Include="Screens\Menu\ButtonSystem.cs" />
     <Compile Include="Screens\Menu\MainMenu.cs" />
-    <Compile Include="Screens\Menu\MenuVisualisation.cs" />
     <Compile Include="Screens\Menu\OsuLogo.cs" />
     <Compile Include="Screens\Multiplayer\Lobby.cs" />
     <Compile Include="Screens\Multiplayer\Match.cs" />

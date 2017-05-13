@@ -27,9 +27,9 @@ namespace osu.Game.Screens.Menu
 
         private const int bars_per_visualizer = 250;
         private const int number_of_visualizers = 5;
-        private const float bar_scale_multiplier = 3.8f;
+        private const float bar_scale_multiplier = 3.6f;
 
-        public MenuVisualisation()
+        public LogoVisualisation()
         {
             Size = new Vector2(460);
             Anchor = Anchor.Centre;
@@ -49,7 +49,6 @@ namespace osu.Game.Screens.Menu
                         RelativePositionAxes = Axes.Both,
                         Scale = new Vector2(1, 0),
                         Colour = Color4.White,
-                        Alpha = 0.5f,
                         Position = new Vector2(
                         -(float)Math.Sin((float)(j + i * (bars_per_visualizer / number_of_visualizers)) / bars_per_visualizer * 2 * MathHelper.Pi) / 2,
                         -0.5f + (float)Math.Cos((float)(j + i * (bars_per_visualizer / number_of_visualizers)) / bars_per_visualizer * 2 * MathHelper.Pi) / 2),
@@ -59,11 +58,12 @@ namespace osu.Game.Screens.Menu
             }
 
             kiai.ValueChanged += updateKiai;
+            kiai.TriggerChange();
         }
 
         private void updateKiai(bool newValue)
         {
-            FadeTo(newValue ? 1 : 0.4f, 75);
+            FadeTo(newValue ? 1 : 0.5f, 75);
         }
 
         protected override void Update()
@@ -77,14 +77,16 @@ namespace osu.Game.Screens.Menu
                     kiai.Value = (kiaiControlPoint?.KiaiMode ?? false);
 
                     //Considering 20 checks on the audio data per second
-                    if (timeOfLastUpdate + (1000f/20) <= Clock.CurrentTime)
+                    if (timeOfLastUpdate + (1000f / 20) <= Clock.CurrentTime)
                     {
                         int i = 0;
                         float[] audioData = beatmap.Value.Track.FrequencyAmplitudes;
 
                         foreach (Box b in Children)
                         {
-                            int index = (i % bars_per_visualizer) + indexOffset - index > bars_per_visualizer - 1 ? bars_per_visualizer : 0;
+                            int index = (i % bars_per_visualizer) + indexOffset;
+                            if (index > bars_per_visualizer - 1)
+                                index -= bars_per_visualizer;
 
                             if (audioData[index] >= b.Scale.Y)
                             {
@@ -93,8 +95,9 @@ namespace osu.Game.Screens.Menu
                             }
                             i++;
                         }
-
-                        indexOffset += indexOffset == bars_per_visualizer - 5 ? -bars_per_visualizer + 5 : 5;
+                        indexOffset += 5;
+                        if (indexOffset > bars_per_visualizer)
+                            indexOffset -= bars_per_visualizer;
                         timeOfLastUpdate = Clock.CurrentTime;
                     }
                 }
@@ -105,11 +108,10 @@ namespace osu.Game.Screens.Menu
         {
             foreach (Box b in Children)
             {
-                b.ScaleTo(new Vector2(1, b.Scale.Y  * bar_scale_multiplier * 0.8f), 50);
-
-                if (b.Scale.Y > 0)
+                if (b.Scale.Y > 0.008f)
                 {
-                    b.Alpha = MathHelper.Clamp(b.Scale.Y * bar_scale_multiplier - 0.01f, 0, 0.15f) * .2f / 0.15f;
+                    b.ScaleTo(new Vector2(1, b.Scale.Y * 0.8f), 50);
+                    b.Alpha = MathHelper.Clamp(b.Scale.Y * bar_scale_multiplier - 0.01f, 0, 0.15f) * .45f / 0.15f;
                 }
             }
         }
