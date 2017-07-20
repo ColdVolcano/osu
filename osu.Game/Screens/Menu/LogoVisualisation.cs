@@ -54,11 +54,17 @@ namespace osu.Game.Screens.Menu
         private const float time_between_updates = 50;
 
         /// <summary>
+        /// Number of times the amplitude update will be divided.
+        /// </summary>
+        private const int subupdates_per_update = bars_per_visualiser / (int)visualiser_rounds;
+
+        /// <summary>
         /// The minimum amplitude to show a bar.
         /// </summary>
         private const float amplitude_dead_zone = 1f / bar_length;
 
         private int indexOffset;
+        private int moduloOffset;
 
         public Color4 AccentColour { get; set; }
 
@@ -83,23 +89,11 @@ namespace osu.Game.Screens.Menu
             shader = shaders.Load(VertexShaderDescriptor.TEXTURE_2, FragmentShaderDescriptor.TEXTURE_ROUNDED);
         }
 
-        private void updateAmplitudes()
+        private void updateOffset()
         {
-            var track = beatmap.Value.Track;
-
-            float[] temporalAmplitudes = track?.CurrentAmplitudes.FrequencyAmplitudes ?? new float[256];
-
-            var effect = beatmap.Value.Beatmap.ControlPointInfo.EffectPointAt(track?.CurrentTime ?? Time.Current);
-
-            for (int i = 0; i < bars_per_visualiser; i++)
+            if (!beatmap?.Value?.Track?.IsRunning ?? false)
             {
-                if (track?.IsRunning ?? false)
-                {
-                    float targetAmplitude = temporalAmplitudes[(i + indexOffset) % bars_per_visualiser] * (effect?.KiaiMode == true ? 1 : 0.5f);
-                    if (targetAmplitude > frequencyAmplitudes[i])
-                        frequencyAmplitudes[i] = targetAmplitude;
-                }
-                else
+                for (int i = 0; i < bars_per_visualiser; i++)
                 {
                     int index = (i + index_change) % bars_per_visualiser;
                     if (frequencyAmplitudes[index] > frequencyAmplitudes[i])
@@ -108,13 +102,32 @@ namespace osu.Game.Screens.Menu
             }
 
             indexOffset = (indexOffset + index_change) % bars_per_visualiser;
-            Scheduler.AddDelayed(updateAmplitudes, time_between_updates);
+            Scheduler.AddDelayed(updateOffset, time_between_updates);
+        }
+
+        private void updateAmplitudes()
+        {
+            var track = beatmap.Value.Track;
+            float[] temporalAmplitudes = track?.CurrentAmplitudes.FrequencyAmplitudes ?? new float[256];
+            var effect = beatmap.Value.Beatmap.ControlPointInfo.EffectPointAt(track?.CurrentTime ?? Time.Current);
+            if (track?.IsRunning ?? false)
+            {
+                for (int i = moduloOffset; i < bars_per_visualiser; i += subupdates_per_update)
+                {
+                    float targetAmplitude = temporalAmplitudes[(i + indexOffset) % bars_per_visualiser] * (effect?.KiaiMode == true ? 1 : 0.5f);
+                    if (targetAmplitude > frequencyAmplitudes[i])
+                        frequencyAmplitudes[i] = targetAmplitude;
+                }
+            }
+            moduloOffset = (moduloOffset + 1) % subupdates_per_update;
+            Scheduler.AddDelayed(updateAmplitudes, time_between_updates / subupdates_per_update);
         }
 
         protected override void LoadComplete()
         {
             base.LoadComplete();
             updateAmplitudes();
+            updateOffset();
         }
 
         protected override void Update()
