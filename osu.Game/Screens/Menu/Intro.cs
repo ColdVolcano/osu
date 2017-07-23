@@ -26,6 +26,7 @@ namespace osu.Game.Screens.Menu
 {
     public class Intro : OsuScreen
     {
+        private readonly ParallaxContainer parallaxContainer;
         private readonly CircularContainer lightBlueishCircle; //ScaleTo(1, 750, someEasing)
         private readonly CircularContainer blackContainer;
         private readonly CircularContainer semiOpaqueCircle; //150 ms wait, then Scale to 0.3 for 250, then Scale to 1 for 50, then scale to 0.95 for 33, then scale to 1 for 467, then fade out
@@ -51,13 +52,16 @@ namespace osu.Game.Screens.Menu
 
         internal override bool ShowOverlays => false;
 
+        bool isVisualTest;
+
         protected override BackgroundScreen CreateBackground() => new BackgroundScreenEmpty();
 
-        public Intro()
+        public Intro(bool visualTest = false)
         {
+            isVisualTest = visualTest;
             Children = new Drawable[]
             {
-                new ParallaxContainer
+                parallaxContainer = new ParallaxContainer
                 {
                     ParallaxAmount = 0.01f,
                     Children = new Drawable[]
@@ -167,6 +171,7 @@ namespace osu.Game.Screens.Menu
                         },
                         text = new OsuSpriteText
                         {
+                            Depth = 0,
                             Text = "welcome",
                             Anchor = Anchor.Centre,
                             Origin = Anchor.Centre,
@@ -176,6 +181,7 @@ namespace osu.Game.Screens.Menu
                         },
                         logo = new OsuLogo
                         {
+                            Depth = -3,
                             Alpha = 0,
                             Interactive = false,
                             Ripple = false,
@@ -255,17 +261,21 @@ namespace osu.Game.Screens.Menu
 
             Scheduler.AddDelayed(delegate
             {
-                // Only start the current track if it is the menu music. A beatmap's track is started when entering the Main Manu.
-                if (menuMusic)
-                    track.Start();
-
-                LoadComponentAsync(mainMenu = new MainMenu());
-
+                if (!isVisualTest)
+                {
+                    // Only start the current track if it is the menu music. A beatmap's track is started when entering the Main Manu.
+                    if (menuMusic)
+                        track.Start();
+                    LoadComponentAsync(mainMenu = new MainMenu());
+                }
                 Scheduler.AddDelayed(delegate
                 {
                     logo.FadeOut(300);
-                    DidLoadMenu = true;
-                    Push(mainMenu);
+                    if (!isVisualTest)
+                    {
+                        DidLoadMenu = true;
+                        Push(mainMenu);
+                    }
                 }, 2300);
             }, 600);
 
@@ -298,6 +308,7 @@ namespace osu.Game.Screens.Menu
                     .FadeOut();
             }
             //Second animation, this time as the circle behind the outline of the osu!logo
+            Scheduler.AddDelayed(() => parallaxContainer.ChangeChildDepth(semiOpaqueCircle, -1), 1350);
             using (semiOpaqueCircle.BeginDelayedSequence(1350, true))
             {
                 semiOpaqueCircle.ResizeTo(logo.Size * 0.967f)
@@ -335,6 +346,7 @@ namespace osu.Game.Screens.Menu
                     .Then()
                     .FadeOut();
             }
+            Scheduler.AddDelayed(() => parallaxContainer.ChangeChildDepth(whiteCircle, -2), 1350);
             //Second animation, tis time as the outline of the osu!logo
             using (whiteCircle.BeginDelayedSequence(1385, true))
             {
