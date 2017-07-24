@@ -11,7 +11,6 @@ using osu.Framework.Configuration;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Shapes;
-using osu.Framework.Graphics.Sprites;
 using osu.Framework.MathUtils;
 using osu.Framework.Screens;
 using osu.Game.Beatmaps.IO;
@@ -28,13 +27,13 @@ namespace osu.Game.Screens.Menu
     {
         private readonly ParallaxContainer parallaxContainer;
         private readonly CircularContainer lightBlueishCircle; //ScaleTo(1, 750, someEasing)
-        private readonly CircularContainer blackContainer;
+        private readonly CircularContainer biggerBlackCircle;
         private readonly CircularContainer semiOpaqueCircle; //150 ms wait, then Scale to 0.3 for 250, then Scale to 1 for 50, then scale to 0.95 for 33, then scale to 1 for 467, then fade out
         private readonly CircularContainer blackCircle;
         private readonly CircularContainer whiteCircle;
         private readonly CircularContainer blackLittleCircle;
         private readonly Container linesContainer;
-        private readonly SpriteText text;
+        private readonly OsuSpriteText text;
         private readonly OsuLogo logo;
 
         public const string MENU_MUSIC_BEATMAP_HASH = "21c1271b91234385978b5418881fdd88";
@@ -82,7 +81,7 @@ namespace osu.Game.Screens.Menu
                                 Alpha = 1,
                             }
                         },
-                        blackContainer = new CircularContainer
+                        biggerBlackCircle = new CircularContainer
                         {
                             Anchor = Anchor.Centre,
                             Origin = Anchor.Centre,
@@ -171,7 +170,6 @@ namespace osu.Game.Screens.Menu
                         },
                         text = new OsuSpriteText
                         {
-                            Depth = 0,
                             Text = "welcome",
                             Anchor = Anchor.Centre,
                             Origin = Anchor.Centre,
@@ -181,7 +179,7 @@ namespace osu.Game.Screens.Menu
                         },
                         logo = new OsuLogo
                         {
-                            Depth = -3,
+                            Depth = -6,
                             Alpha = 0,
                             Interactive = false,
                             Ripple = false,
@@ -286,12 +284,60 @@ namespace osu.Game.Screens.Menu
                 .ScaleTo(1, 450, Easing.OutCubic)
                 .Then()
                 .FadeOut();
-            using (blackContainer.BeginDelayedSequence(100))
+            //Second animation, this time as the blue circle going to the logo
+            Scheduler.AddDelayed(delegate
             {
-                blackContainer.ScaleTo(0.2f, 150, Easing.InCubic)
+                parallaxContainer.ChangeChildDepth(lightBlueishCircle, -4);
+                lightBlueishCircle.Origin = Anchor.CentreLeft;
+                lightBlueishCircle.Child.Colour = OsuColour.FromHex("8CD6EC");
+            }, 1350);
+            using (lightBlueishCircle.BeginDelayedSequence(1450))
+            {
+                lightBlueishCircle.MoveTo(new Vector2(-200, 0))
+                    .RotateTo(180)
+                    .ResizeTo(logo.Size.X * 0.865f)
+                    .ScaleTo(0)
+                    .FadeIn()
+                    .RotateTo(0, 600, Easing.InOutCubic)
+                    .ScaleTo(0.75f, 250, Easing.InCubic)
+                    .Delay(150)
+                    .MoveTo(new Vector2(logo.Size.X * 0.865f / -2, 0), 300)
+                    .Delay(100)
+                    .ScaleTo(1, 500, Easing.OutCubic)
+                    .Then()
+                    .Delay(200)
+                    .FadeOut();
+            }
+            using (biggerBlackCircle.BeginDelayedSequence(100))
+            {
+                biggerBlackCircle.ScaleTo(0.2f, 150, Easing.InCubic)
                     .Then()
                     .ScaleTo(1, 450, Easing.OutCubic)
                     .Then()
+                    .FadeOut();
+            }
+            //Second animation, yellow circle of the osu!logo
+            Scheduler.AddDelayed(delegate
+            {
+                parallaxContainer.ChangeChildDepth(biggerBlackCircle, -3);
+                biggerBlackCircle.Origin = Anchor.TopCentre;
+                biggerBlackCircle.Child.Colour = OsuColour.FromHex("EFC953");
+            }, 1350);
+            using (biggerBlackCircle.BeginDelayedSequence(1400))
+            {
+                biggerBlackCircle.MoveTo(new Vector2(0, -200))
+                    .RotateTo(180)
+                    .ResizeTo(logo.Size.X * 0.865f)
+                    .ScaleTo(0)
+                    .FadeIn()
+                    .RotateTo(0, 600, Easing.InOutQuad)
+                    .ScaleTo(0.75f, 250, Easing.InCubic)
+                    .Delay(150)
+                    .MoveTo(new Vector2(0, logo.Size.X * 0.865f / -2), 300)
+                    .Delay(100)
+                    .ScaleTo(1, 550, Easing.OutCubic)
+                    .Then()
+                    .Delay(600)
                     .FadeOut();
             }
             //150 ms wait, then Scale to 0.3 for 250, then Scale to 1 for 50, then scale to 0.95 for 33, then scale to 1 for 467, then fade out
@@ -308,10 +354,10 @@ namespace osu.Game.Screens.Menu
                     .FadeOut();
             }
             //Second animation, this time as the circle behind the outline of the osu!logo
-            Scheduler.AddDelayed(() => parallaxContainer.ChangeChildDepth(semiOpaqueCircle, -1), 1350);
+            Scheduler.AddDelayed(() => parallaxContainer.ChangeChildDepth(semiOpaqueCircle, 0), 1350);
             using (semiOpaqueCircle.BeginDelayedSequence(1350, true))
             {
-                semiOpaqueCircle.ResizeTo(logo.Size * 0.967f)
+                semiOpaqueCircle.ResizeTo(logo.Size * 0.965f)
                     .FadeIn();
                 (semiOpaqueCircle.Child as Box)
                     .ResizeHeightTo(0)
@@ -319,7 +365,7 @@ namespace osu.Game.Screens.Menu
                     .ResizeHeightTo(1, 350, Easing.InOutCirc)
                     .RotateTo(-90, 350, Easing.InCubic)
                     .Then()
-                    .Delay(1000)
+                    .Delay(600)
                     .FadeOut();
             }
             //200 ms wait, then Scale to 0.18 for 200, then scale to 0.66 for 50, then scale to 0.82 for 33, then scale to 1 for 467, then fade out
@@ -335,6 +381,30 @@ namespace osu.Game.Screens.Menu
                     .Then()
                     .FadeOut();
             }
+            //Purple circle
+            Scheduler.AddDelayed(delegate
+            {
+                parallaxContainer.ChangeChildDepth(blackCircle, -2);
+                blackCircle.Origin = Anchor.BottomCentre;
+                blackCircle.Child.Colour = OsuColour.FromHex("A28EEE");
+            }, 1350);
+            using (blackCircle.BeginDelayedSequence(1350))
+            {
+                blackCircle.MoveTo(new Vector2(0, 200))
+                    .RotateTo(180)
+                    .ResizeTo(logo.Size.X * 0.865f)
+                    .ScaleTo(0)
+                    .FadeIn()
+                    .RotateTo(0, 600, Easing.InOutQuad)
+                    .ScaleTo(0.75f, 250, Easing.InCubic)
+                    .Delay(150)
+                    .MoveTo(new Vector2(0, logo.Size.X * 0.865f / 2), 300)
+                    .Delay(100)
+                    .ScaleTo(1, 600, Easing.OutCubic)
+                    .Then()
+                    .Delay(600)
+                    .FadeOut();
+            }
             //250 ms wait, then scale to 0.42 for 250, then scale to 0.91 for 33, then scale to 1 for 33 // WHITE
             using (whiteCircle.BeginDelayedSequence(250))
             {
@@ -346,18 +416,18 @@ namespace osu.Game.Screens.Menu
                     .Then()
                     .FadeOut();
             }
-            Scheduler.AddDelayed(() => parallaxContainer.ChangeChildDepth(whiteCircle, -2), 1350);
+            Scheduler.AddDelayed(() => parallaxContainer.ChangeChildDepth(whiteCircle, -1), 1350);
             //Second animation, tis time as the outline of the osu!logo
             using (whiteCircle.BeginDelayedSequence(1385, true))
             {
-                whiteCircle.ResizeTo(logo.Size * 0.967f)
+                whiteCircle.ResizeTo(logo.Size * 0.965f)
                     .FadeIn();
                 (whiteCircle.Child as Box).ResizeWidthTo(0)
                     .Then()
                     .ResizeWidthTo(1, 550, Easing.InOutCubic)
                     .RotateTo(-90, 550, Easing.OutCirc)
                     .Then()
-                    .Delay(1000)
+                    .Delay(600)
                     .FadeOut();
             }
             //250 ms wait, then scale to 0.16 for 250, then scale to 0.58 for 33, then scale to 0.79 for 67, then scale to 1 for 500 // BLACK
@@ -373,6 +443,31 @@ namespace osu.Game.Screens.Menu
                     .Then()
                     .FadeOut();
             }
+            //Pink circle
+            Scheduler.AddDelayed(delegate
+            {
+                parallaxContainer.ChangeChildDepth(blackLittleCircle, -5);
+                blackLittleCircle.Origin = Anchor.CentreRight;
+                blackLittleCircle.Child.Colour = logo.OsuPink;
+            }, 1350);
+            using (blackLittleCircle.BeginDelayedSequence(1500))
+            {
+                blackLittleCircle.MoveTo(new Vector2(200, 0))
+                    .RotateTo(180)
+                    .ResizeTo(logo.Size.X * 0.865f)
+                    .ScaleTo(0)
+                    .FadeIn()
+                    .RotateTo(0, 600, Easing.InOutQuad)
+                    .ScaleTo(0.75f, 200, Easing.InCubic)
+                    .Delay(150)
+                    .MoveTo(new Vector2(logo.Size.X * 0.865f / 2, 0), 300)
+                    .Delay(50)
+                    .ScaleTo(1, 450, Easing.OutCubic)
+                    .Then()
+                    .Delay(600)
+                    .FadeOut();
+            }
+            Scheduler.AddDelayed(() => parallaxContainer.ChangeChildDepth(text, 1), 1350);
             using (text.BeginDelayedSequence(400))
             {
                 text.TransformSpacingTo(new Vector2(-20, 1))
@@ -401,13 +496,8 @@ namespace osu.Game.Screens.Menu
                 .FadeIn()
                 .Delay(800)
                 .FadeOut();
-            using (logo.BeginDelayedSequence(2100, true))
-            {
+            using (logo.BeginDelayedSequence(2200, true))
                 logo.FadeIn(200);
-            }
-            //CIRCLE, might use the lightBlueishContainer: scale is now 0, then scale to 1 for 375, then fade out //blueish
-            //
-
         }
 
         protected override void OnSuspending(Screen next)
