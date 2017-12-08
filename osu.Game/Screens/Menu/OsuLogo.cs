@@ -32,6 +32,7 @@ namespace osu.Game.Screens.Menu
         private const double transition_length = 300;
 
         private readonly Sprite logo;
+        private readonly Sprite upperLogo;
         private readonly CircularContainer logoContainer;
         private readonly Container logoBounceContainer;
         private readonly Container logoBeatContainer;
@@ -127,6 +128,8 @@ namespace osu.Game.Screens.Menu
                                 },
                                 logoAmplitudeContainer = new Container
                                 {
+                                    Anchor = Anchor.Centre,
+                                    Origin = Anchor.Centre,
                                     AutoSizeAxes = Axes.Both,
                                     Children = new Drawable[]
                                     {
@@ -216,6 +219,12 @@ namespace osu.Game.Screens.Menu
                                             }
                                         }
                                     }
+                                },
+                                upperLogo = new Sprite
+                                {
+                                    Alpha = 0.2f,
+                                    Anchor = Anchor.Centre,
+                                    Origin = Anchor.Centre,
                                 }
                             }
                         }
@@ -254,6 +263,7 @@ namespace osu.Game.Screens.Menu
             sampleClick = audio.Sample.Get(@"Menu/osu-logo-select");
             sampleBeat = audio.Sample.Get(@"Menu/osu-logo-heartbeat");
 
+            upperLogo.Texture = textures.Get(@"Menu/logo");
             logo.Texture = textures.Get(@"Menu/logo");
             ripple.Texture = textures.Get(@"Menu/logo");
         }
@@ -294,6 +304,12 @@ namespace osu.Game.Screens.Menu
                     .Then()
                     .FadeOut(beatLength);
 
+                upperLogo.ClearTransforms();
+                upperLogo
+                    .FadeTo(0.3f * amplitudeAdjust, early_activation, Easing.Out)
+                    .Then()
+                    .FadeTo(0.2f, beatLength);
+
                 visualizer.ClearTransforms();
                 visualizer
                     .FadeTo(0.9f * amplitudeAdjust, early_activation, Easing.Out)
@@ -333,8 +349,10 @@ namespace osu.Game.Screens.Menu
             }
             else
             {
+                logoAmplitudeContainer.ScaleTo(1, 75, Easing.OutQuint);
                 triangles.Velocity = paused_velocity;
             }
+            upperLogo.Scale = Vector2.One + (Vector2.One - logoAmplitudeContainer.Scale) + logoAmplitudeContainer.Scale * (Vector2.One - logoBeatContainer.Scale);
         }
 
         private bool interactive => Action != null && Alpha > 0.2f;
