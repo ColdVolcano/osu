@@ -222,7 +222,7 @@ namespace osu.Game.Screens.Menu
                                 },
                                 upperLogo = new Sprite
                                 {
-                                    Alpha = 0.2f,
+                                    Alpha = 0.15f,
                                     Anchor = Anchor.Centre,
                                     Origin = Anchor.Centre,
                                 }
@@ -308,7 +308,7 @@ namespace osu.Game.Screens.Menu
                 upperLogo
                     .FadeTo(0.3f * amplitudeAdjust, early_activation, Easing.Out)
                     .Then()
-                    .FadeTo(0.2f, beatLength);
+                    .FadeTo(0.15f, beatLength);
 
                 visualizer.ClearTransforms();
                 visualizer
