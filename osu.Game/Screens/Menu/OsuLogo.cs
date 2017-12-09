@@ -352,7 +352,7 @@ namespace osu.Game.Screens.Menu
                 logoAmplitudeContainer.ScaleTo(1, 75, Easing.OutQuint);
                 triangles.Velocity = paused_velocity;
             }
-            upperLogo.Scale = Vector2.One + (Vector2.One - logoAmplitudeContainer.Scale) + logoAmplitudeContainer.Scale * (Vector2.One - logoBeatContainer.Scale);
+            upperLogo.Scale = new Vector2(1 + (1 - logoAmplitudeContainer.Scale.X) + logoAmplitudeContainer.Scale.X * (1 - logoBeatContainer.Scale.X));
         }
 
         private bool interactive => Action != null && Alpha > 0.2f;

@@ -95,6 +95,8 @@ namespace osu.Game.Screens.Menu
                 if (track?.IsRunning ?? false)
                 {
                     float targetAmplitude = temporalAmplitudes[(i + indexOffset) % bars_per_visualiser] * (effect?.KiaiMode == true ? 1 : 0.5f);
+                    if (targetAmplitude > amplitude_dead_zone * 2)
+                        targetAmplitude += Math.Min(1, targetAmplitude / 0.1f) * 0.1f;
                     if (targetAmplitude > frequencyAmplitudes[i])
                         frequencyAmplitudes[i] = targetAmplitude;
                 }
