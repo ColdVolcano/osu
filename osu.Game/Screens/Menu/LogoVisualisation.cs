@@ -31,7 +31,7 @@ namespace osu.Game.Screens.Menu
         /// <summary>
         /// The maximum length of each bar in the visualiser. Will be reduced when kiai is not activated.
         /// </summary>
-        private const float bar_length = 600;
+        private const float bar_length = 450;
 
         /// <summary>
         /// The number of bars in one rotation of the visualiser.
@@ -49,9 +49,11 @@ namespace osu.Game.Screens.Menu
         private const float decay_per_milisecond = 0.0024f;
 
         /// <summary>
-        /// Number of milliseconds between each amplitude update.
+        /// Number of milliseconds between each index update.
         /// </summary>
-        private const float time_between_updates = 50;
+        private const float time_between_index_updates = 50;
+
+        private const float time_between_amplitude_updates = time_between_index_updates / 5;
 
         /// <summary>
         /// The minimum amplitude to show a bar.
@@ -91,29 +93,39 @@ namespace osu.Game.Screens.Menu
 
             float[] temporalAmplitudes = track?.CurrentAmplitudes.FrequencyAmplitudes ?? new float[256];
 
-            for (int i = 0; i < bars_per_visualiser; i++)
+            if (track?.IsRunning ?? false)
             {
-                if (track?.IsRunning ?? false)
+                for (int i = 0; i < bars_per_visualiser; i++)
                 {
-                    float targetAmplitude = temporalAmplitudes[(i + indexOffset) % bars_per_visualiser] * (effect?.KiaiMode == true ? 1 : 0.5f);
+                    float targetAmplitude = (float)Math.Log(Math.Log(temporalAmplitudes[(i + indexOffset) % bars_per_visualiser] * (effect?.KiaiMode == true ? 1 : 0.5f) + 1, 2) + 1, 2);
                     if (targetAmplitude > frequencyAmplitudes[i])
                         frequencyAmplitudes[i] = targetAmplitude;
                 }
-                else
+            }
+
+            Scheduler.AddDelayed(updateAmplitudes, time_between_amplitude_updates);
+        }
+
+        private void updateIndex()
+        {
+
+            if (beatmap.Value.TrackLoaded && (!beatmap.Value.Track?.IsRunning ?? false))
+            {
+                for (int i = 0; i < bars_per_visualiser; i++)
                 {
                     int index = (i + index_change) % bars_per_visualiser;
                     if (frequencyAmplitudes[index] > frequencyAmplitudes[i])
                         frequencyAmplitudes[i] = frequencyAmplitudes[index];
                 }
             }
-
             indexOffset = (indexOffset + index_change) % bars_per_visualiser;
-            Scheduler.AddDelayed(updateAmplitudes, time_between_updates);
+            Scheduler.AddDelayed(updateIndex, time_between_index_updates);
         }
 
         protected override void LoadComplete()
         {
             base.LoadComplete();
+            updateIndex();
             updateAmplitudes();
         }
 
