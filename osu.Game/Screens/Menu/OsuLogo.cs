@@ -138,7 +138,7 @@ namespace osu.Game.Screens.Menu
                                                     RelativeSizeAxes = Axes.Both,
                                                     Origin = Anchor.Centre,
                                                     Anchor = Anchor.Centre,
-                                                    Alpha = 0.5f,
+                                                    Alpha = 0.6f,
                                                     Size = new Vector2(0.96f)
                                                 },
                                                 new Container
@@ -296,9 +296,9 @@ namespace osu.Game.Screens.Menu
 
                 visualizer.ClearTransforms();
                 visualizer
-                    .FadeTo(0.9f * amplitudeAdjust, early_activation, Easing.Out)
+                    .FadeTo(0.85f + (amplitudeAdjust / 10), early_activation, Easing.Out)
                     .Then()
-                    .FadeTo(0.5f, beatLength);
+                    .FadeTo(0.6f, beatLength);
             }
         }
 

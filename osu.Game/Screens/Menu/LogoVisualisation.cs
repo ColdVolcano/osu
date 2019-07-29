@@ -1,9 +1,7 @@
 ﻿// Copyright (c) 2007-2018 ppy Pty Ltd <contact@ppy.sh>.
 // Licensed under the MIT Licence - https://raw.githubusercontent.com/ppy/osu/master/LICENCE
 
-using osuTK;
-using osuTK.Graphics;
-using osuTK.Graphics.ES30;
+using osu.Framework.Allocation;
 using osu.Framework.Configuration;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Batches;
@@ -14,8 +12,12 @@ using osu.Framework.Graphics.Shaders;
 using osu.Framework.Graphics.Textures;
 using osu.Game.Beatmaps;
 using osu.Game.Graphics;
+using osuTK;
+using osuTK.Graphics;
+using osuTK.Graphics.ES30;
 using System;
-using osu.Framework.Allocation;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace osu.Game.Screens.Menu
 {
@@ -26,7 +28,7 @@ namespace osu.Game.Screens.Menu
         /// <summary>
         /// The number of bars to jump each update iteration.
         /// </summary>
-        private const int index_change = 5;
+        private const int index_change = 6;
 
         /// <summary>
         /// The maximum length of each bar in the visualiser. Will be reduced when kiai is not activated.
@@ -36,7 +38,7 @@ namespace osu.Game.Screens.Menu
         /// <summary>
         /// The number of bars in one rotation of the visualiser.
         /// </summary>
-        private const int bars_per_visualiser = 200;
+        private const int bars_per_visualiser = 256;
 
         /// <summary>
         /// How many times we should stretch around the circumference (overlapping overselves).
@@ -44,19 +46,19 @@ namespace osu.Game.Screens.Menu
         private const float visualiser_rounds = 5;
 
         /// <summary>
-        /// How much should each bar go down each milisecond (based on a full bar).
+        /// How much should each bar go down each second (relative to a full bar).
         /// </summary>
-        private const float decay_per_milisecond = 0.0024f;
+        private const float decay_per_second = 2.6f;
 
         /// <summary>
-        /// Number of milliseconds between each amplitude update.
+        /// Number of milliseconds between each index shift.
         /// </summary>
-        private const float time_between_updates = 50;
+        private const float index_shift_delay = 50;
 
         /// <summary>
         /// The minimum amplitude to show a bar.
         /// </summary>
-        private const float amplitude_dead_zone = 1f / bar_length;
+        private const float amplitude_dead_zone = 2f / bar_length;
 
         private int indexOffset;
 
@@ -70,7 +72,7 @@ namespace osu.Game.Screens.Menu
         public LogoVisualisation()
         {
             texture = Texture.WhitePixel;
-            AccentColour = new Color4(1, 1, 1, 0.2f);
+            AccentColour = new Color4(1, 1, 1, 1 / (visualiser_rounds - 1));
             Blending = BlendingMode.Additive;
         }
 
@@ -81,50 +83,55 @@ namespace osu.Game.Screens.Menu
             shader = shaders.Load(VertexShaderDescriptor.TEXTURE_2, FragmentShaderDescriptor.TEXTURE_ROUNDED);
         }
 
-        private void updateAmplitudes()
+        private void shiftIndex()
         {
             var track = beatmap.Value.TrackLoaded ? beatmap.Value.Track : null;
-            var effect = beatmap.Value.BeatmapLoaded ? beatmap.Value.Beatmap.ControlPointInfo.EffectPointAt(track?.CurrentTime ?? Time.Current) : null;
 
             float[] temporalAmplitudes = track?.CurrentAmplitudes.FrequencyAmplitudes ?? new float[256];
 
             for (int i = 0; i < bars_per_visualiser; i++)
             {
-                if (track?.IsRunning ?? false)
-                {
-                    float targetAmplitude = temporalAmplitudes[(i + indexOffset) % bars_per_visualiser] * (effect?.KiaiMode == true ? 1 : 0.5f);
-                    if (targetAmplitude > frequencyAmplitudes[i])
-                        frequencyAmplitudes[i] = targetAmplitude;
-                }
-                else
+                if (track?.IsRunning != true)
                 {
                     int index = (i + index_change) % bars_per_visualiser;
                     if (frequencyAmplitudes[index] > frequencyAmplitudes[i])
-                        frequencyAmplitudes[i] = frequencyAmplitudes[index];
+                        frequencyAmplitudes[i] = frequencyAmplitudes[index] - (frequencyAmplitudes[index] / 20);
                 }
             }
 
             indexOffset = (indexOffset + index_change) % bars_per_visualiser;
-            Scheduler.AddDelayed(updateAmplitudes, time_between_updates);
+            Scheduler.AddDelayed(shiftIndex, index_shift_delay);
         }
 
         protected override void LoadComplete()
         {
             base.LoadComplete();
-            updateAmplitudes();
+            shiftIndex();
         }
 
         protected override void Update()
         {
             base.Update();
 
-            float decayFactor = (float)Time.Elapsed * decay_per_milisecond;
+            var track = beatmap.Value.TrackLoaded ? beatmap.Value.Track : null;
+            var effect = beatmap.Value.BeatmapLoaded ? beatmap.Value.Beatmap.ControlPointInfo.EffectPointAt(track?.CurrentTime ?? Time.Current) : null;
+
+            float[] temporalAmplitudes = track?.CurrentAmplitudes.FrequencyAmplitudes ?? new float[256];
+
+            float decayFactor = (float)Time.Elapsed * decay_per_second / 1000;
             for (int i = 0; i < bars_per_visualiser; i++)
             {
-                //3% of extra bar length to make it a little faster when bar is almost at it's minimum
+                //3% of extra bar length to make it shrink faster when bar is almost at it's minimum
                 frequencyAmplitudes[i] -= decayFactor * (frequencyAmplitudes[i] + 0.03f);
                 if (frequencyAmplitudes[i] < 0)
                     frequencyAmplitudes[i] = 0;
+
+                if (track?.IsRunning ?? false)
+                {
+                    float targetAmplitude = temporalAmplitudes[(i + indexOffset) % bars_per_visualiser] * (effect?.KiaiMode == true ? 1 : 0.5f);
+                    if (targetAmplitude > frequencyAmplitudes[i])
+                        frequencyAmplitudes[i] = frequencyAmplitudes[i] = targetAmplitude;
+                }
             }
 
             Invalidate(Invalidation.DrawNode, shallPropagate: false);
@@ -150,7 +157,7 @@ namespace osu.Game.Screens.Menu
 
         private class VisualiserSharedData
         {
-            public readonly LinearBatch<TexturedVertex2D> VertexBatch = new LinearBatch<TexturedVertex2D>(100 * 4, 10, PrimitiveType.Quads);
+            public readonly LinearBatch<TexturedVertex2D> VertexBatch = new LinearBatch<TexturedVertex2D>(1000 * 4, 10, PrimitiveType.Quads);
         }
 
         private class VisualisationDrawNode : DrawNode
@@ -178,24 +185,33 @@ namespace osu.Game.Screens.Menu
 
                 if (AudioData != null)
                 {
-                    for (int j = 0; j < visualiser_rounds; j++)
+                    for (int i = 0; i < bars_per_visualiser; i++)
                     {
-                        for (int i = 0; i < bars_per_visualiser; i++)
+                        var localAudioData = new List<float>();
+                        for (int j = 0; j < visualiser_rounds; j++)
                         {
-                            if (AudioData[i] < amplitude_dead_zone)
+                            int dataIndex = (i + (int)(bars_per_visualiser / visualiser_rounds) * j) % bars_per_visualiser;
+                            if (AudioData[dataIndex] < amplitude_dead_zone)
                                 continue;
+                            localAudioData.Add(AudioData[dataIndex]);
+                        }
 
-                            float rotation = MathHelper.DegreesToRadians(i / (float)bars_per_visualiser * 360 + j * 360 / visualiser_rounds);
+                        if (localAudioData.Count >= (visualiser_rounds == 1 ? 2 : visualiser_rounds))
+                            localAudioData.Remove(localAudioData.Min());
+
+                        foreach (var length in localAudioData)
+                        {
+                            float rotation = MathHelper.DegreesToRadians((float)i / bars_per_visualiser * 360);
                             float rotationCos = (float)Math.Cos(rotation);
                             float rotationSin = (float)Math.Sin(rotation);
                             //taking the cos and sin to the 0..1 range
                             var barPosition = new Vector2(rotationCos / 2 + 0.5f, rotationSin / 2 + 0.5f) * Size;
 
-                            var barSize = new Vector2(Size * (float)Math.Sqrt(2 * (1 - Math.Cos(MathHelper.DegreesToRadians(360f / bars_per_visualiser)))) / 2f, bar_length * AudioData[i]);
+                            var barSize = new Vector2(bar_length * length, Size * (float)Math.Sqrt(2 * (1 - Math.Cos(MathHelper.DegreesToRadians(360f / bars_per_visualiser)))) / 2);
                             //The distance between the position and the sides of the bar.
-                            var bottomOffset = new Vector2(-rotationSin * barSize.X / 2, rotationCos * barSize.X / 2);
+                            var bottomOffset = new Vector2(-rotationSin * barSize.Y / 2, rotationCos * barSize.Y / 2);
                             //The distance between the bottom side of the bar and the top side.
-                            var amplitudeOffset = new Vector2(rotationCos * barSize.Y, rotationSin * barSize.Y);
+                            var amplitudeOffset = new Vector2(rotationCos * barSize.X, rotationSin * barSize.X);
 
                             var rectangle = new Quad(
                                 Vector2Extensions.Transform(barPosition - bottomOffset, DrawInfo.Matrix),
@@ -209,8 +225,7 @@ namespace osu.Game.Screens.Menu
                                 colourInfo,
                                 null,
                                 Shared.VertexBatch.AddAction,
-                                //barSize by itself will make it smooth more in the X axis than in the Y axis, this reverts that.
-                                Vector2.Divide(inflation, barSize.Yx));
+                                Vector2.Divide(inflation, barSize));
                         }
                     }
                 }
