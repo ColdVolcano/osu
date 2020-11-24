@@ -51,7 +51,7 @@ namespace osu.Game.Screens.Menu
         private const float amplitude_dead_zone = 1f / bar_length;
 
         /// <summary>
-        /// The number of bars to jump each update iteration.
+        /// The number of bars to jump counterclockwise each update iteration.
         /// </summary>
         public int IndexChange { get; set; } = 5;
 
@@ -142,7 +142,10 @@ namespace osu.Game.Screens.Menu
                     frequencyAmplitudes[i] = targetAmplitude;
             }
 
-            indexOffset = (indexOffset + IndexChange) % PositionsPerVisualiserRound;
+            if (IndexChange != 0)
+                indexOffset = (indexOffset + IndexChange) % PositionsPerVisualiserRound;
+            else
+                indexOffset = 0;
         }
 
         protected override void LoadComplete()
