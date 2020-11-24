@@ -1,4 +1,4 @@
-﻿// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
+// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
 using osuTK;
@@ -48,7 +48,7 @@ namespace osu.Game.Screens.Menu
         /// <summary>
         /// How many times we should stretch around the circumference (overlapping overselves).
         /// </summary>
-        private const float visualiser_rounds = 5;
+        private const int visualiser_rounds = 5;
 
         /// <summary>
         /// How much should each bar go down each millisecond (based on a full bar).
@@ -203,35 +203,44 @@ namespace osu.Game.Screens.Menu
 
                 Vector2 inflation = DrawInfo.MatrixInverse.ExtractScale().Xy;
 
-                ColourInfo colourInfo = DrawColourInfo.Colour;
-                colourInfo.ApplyChild(transparent_white);
-
                 if (audioData != null)
                 {
-                    for (int j = 0; j < visualiser_rounds; j++)
+                    float barWidth = size * MathF.Sqrt(2 * (1 - MathF.Cos(MathUtils.DegreesToRadians(360f / bars_per_visualiser)))) / 2f;
+                    const float angle_per_bar = 360f / bars_per_visualiser;
+
+                    ColourInfo colourInfo = DrawColourInfo.Colour;
+                    colourInfo.ApplyChild(transparent_white);
+
+                    for (int i = 0; i < bars_per_visualiser; i++)
                     {
-                        for (int i = 0; i < bars_per_visualiser; i++)
+                        float rotation = MathUtils.DegreesToRadians(i * angle_per_bar);
+                        float rotationCos = MathF.Cos(rotation);
+                        float rotationSin = MathF.Sin(rotation);
+
+                        // taking the cos and sin to the 0..1 range
+                        var barPosition = new Vector2(MathF.Cos(rotation) / 2 + 0.5f, MathF.Sin(rotation) / 2 + 0.5f) * size;
+
+                        // The distance between the position and the sides of the bar.
+                        var bottomOffset = new Vector2(-rotationSin * barWidth / 2, rotationCos * barWidth / 2);
+
+                        //picking bars that would fall into this specific rotation...
+                        for (int j = 0; j < visualiser_rounds; j++)
                         {
-                            if (audioData[i] < amplitude_dead_zone)
+                            float targetData = audioData[(i + j * bars_per_visualiser / visualiser_rounds) % bars_per_visualiser];
+
+                            if (targetData < amplitude_dead_zone)
                                 continue;
 
-                            float rotation = MathUtils.DegreesToRadians(i / (float)bars_per_visualiser * 360 + j * 360 / visualiser_rounds);
-                            float rotationCos = MathF.Cos(rotation);
-                            float rotationSin = MathF.Sin(rotation);
-                            // taking the cos and sin to the 0..1 range
-                            var barPosition = new Vector2(rotationCos / 2 + 0.5f, rotationSin / 2 + 0.5f) * size;
+                            var barHeight = bar_length * targetData;
 
-                            var barSize = new Vector2(size * MathF.Sqrt(2 * (1 - MathF.Cos(MathUtils.DegreesToRadians(360f / bars_per_visualiser)))) / 2f, bar_length * audioData[i]);
-                            // The distance between the position and the sides of the bar.
-                            var bottomOffset = new Vector2(-rotationSin * barSize.X / 2, rotationCos * barSize.X / 2);
                             // The distance between the bottom side of the bar and the top side.
-                            var amplitudeOffset = new Vector2(rotationCos * barSize.Y, rotationSin * barSize.Y);
+                            var amplitudeOffset = new Vector2(rotationCos * barHeight, rotationSin * barHeight);
 
                             var rectangle = new Quad(
-                                Vector2Extensions.Transform(barPosition - bottomOffset, DrawInfo.Matrix),
                                 Vector2Extensions.Transform(barPosition - bottomOffset + amplitudeOffset, DrawInfo.Matrix),
-                                Vector2Extensions.Transform(barPosition + bottomOffset, DrawInfo.Matrix),
-                                Vector2Extensions.Transform(barPosition + bottomOffset + amplitudeOffset, DrawInfo.Matrix)
+                                Vector2Extensions.Transform(barPosition + bottomOffset + amplitudeOffset, DrawInfo.Matrix),
+                                Vector2Extensions.Transform(barPosition - bottomOffset, DrawInfo.Matrix),
+                                Vector2Extensions.Transform(barPosition + bottomOffset, DrawInfo.Matrix)
                             );
 
                             DrawQuad(
@@ -240,8 +249,7 @@ namespace osu.Game.Screens.Menu
                                 colourInfo,
                                 null,
                                 vertexBatch.AddAction,
-                                // barSize by itself will make it smooth more in the X axis than in the Y axis, this reverts that.
-                                Vector2.Divide(inflation, barSize.Yx));
+                                Vector2.Divide(inflation, rectangle.Size));
                         }
                     }
                 }
