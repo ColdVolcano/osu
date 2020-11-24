@@ -61,6 +61,12 @@ namespace osu.Game.Screens.Menu
         public int BarPositions { get; set; } = 200;
 
         /// <summary>
+        /// Position at which the first bar is rendered, relative to the centre right position.
+        /// Positive values will move the first bar counterclockwise.
+        /// </summary>
+        public int StartPositionDisplacement { get; set; }
+
+        /// <summary>
         /// The relative movement of bars based on input amplification. Defaults to 1.
         /// </summary>
         public float Magnitude { get; set; } = 1;
@@ -145,7 +151,8 @@ namespace osu.Game.Screens.Menu
 
             for (int i = 0; i < temporalAmplitudes.Length; i++)
             {
-                float targetAmplitude = temporalAmplitudes[(i + indexOffset) % BarsPerVisualiserRound] * (effect?.KiaiMode == true ? 1 : 0.5f) * Magnitude;
+                int targetIndex = ((i + indexOffset + StartPositionDisplacement) % BarsPerVisualiserRound + BarsPerVisualiserRound) % BarsPerVisualiserRound;
+                float targetAmplitude = temporalAmplitudes[targetIndex] * (effect?.KiaiMode == true ? 1 : 0.5f) * Magnitude;
                 if (targetAmplitude > frequencyAmplitudes[i])
                     frequencyAmplitudes[i] = targetAmplitude;
             }
