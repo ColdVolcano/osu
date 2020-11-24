@@ -63,6 +63,7 @@ namespace osu.Game.Screens.Menu
         /// <summary>
         /// Maximum number of bars that can occupy a single visualiser position.
         /// If there are more bars in one position than this, only the longer ones will be rendered.
+        /// Alpha of a fully occupied position will be 1.
         /// </summary>
         public int MaxBarsPerPosition { get; set; } = 4;
 
@@ -198,7 +199,7 @@ namespace osu.Game.Screens.Menu
             private float magnitude;
             private int maxBarsPerPosition;
 
-            private static readonly Color4 transparent_white = Color4.White.Opacity(0.2f);
+            private Color4 transparentWhite => Color4.White.Opacity(1f / maxBarsPerPosition);
 
             private float[] audioData;
 
@@ -239,7 +240,7 @@ namespace osu.Game.Screens.Menu
                     float[] dataInPosition = new float[maxBarsPerPosition];
 
                     ColourInfo colourInfo = DrawColourInfo.Colour;
-                    colourInfo.ApplyChild(transparent_white);
+                    colourInfo.ApplyChild(transparentWhite);
 
                     for (int i = 0; i < positions; i++)
                     {
