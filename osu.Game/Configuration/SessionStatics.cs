@@ -15,6 +15,7 @@ namespace osu.Game.Configuration
             Set(Static.LoginOverlayDisplayed, false);
             Set(Static.MutedAudioNotificationShownOnce, false);
             Set<APISeasonalBackgrounds>(Static.SeasonalBackgrounds, null);
+            Set(Static.IntroSequencePlayed, IntroSequence.Circles);
         }
     }
 
@@ -28,5 +29,6 @@ namespace osu.Game.Configuration
         /// Value under this lookup can be <c>null</c> if there are no backgrounds available (or API is not reachable).
         /// </summary>
         SeasonalBackgrounds,
+        IntroSequencePlayed,
     }
 }

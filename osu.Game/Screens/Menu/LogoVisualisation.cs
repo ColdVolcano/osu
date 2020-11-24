@@ -85,7 +85,7 @@ namespace osu.Game.Screens.Menu
 
         /// <summary>
         /// Continue rendering bars for a given visualiser round after it has filled all possible positions, overlapping itself in the process.
-        /// This has no effect if <see cref="BarPositions"/> is higher than <see cref="ChannelAmplitudes.AMPLITUDES_SIZE"/>.
+        /// This has no effect if <see cref="BarPositions"/> is greater than or equal to <see cref="ChannelAmplitudes.AMPLITUDES_SIZE"/>.
         /// </summary>
         public bool ShowFullSpectrum { get; set; }
 
@@ -157,7 +157,7 @@ namespace osu.Game.Screens.Menu
             for (int i = 0; i < temporalAmplitudes.Length; i++)
             {
                 int targetIndex = ((i + indexOffset + StartPositionDisplacement) % BarsPerVisualiserRound + BarsPerVisualiserRound) % BarsPerVisualiserRound;
-                float targetAmplitude = temporalAmplitudes[targetIndex] * (effect?.KiaiMode == true ? 1 : 0.5f) * Magnitude;
+                float targetAmplitude = temporalAmplitudes[targetIndex] * (effect?.KiaiMode == true ? 1 : 2 / 3f) * Magnitude;
                 if (targetAmplitude > frequencyAmplitudes[i])
                     frequencyAmplitudes[i] = targetAmplitude;
             }
@@ -206,6 +206,54 @@ namespace osu.Game.Screens.Menu
                 if (i < temporalAmplitudes.Length)
                     temporalAmplitudes[i] += amplitudes[i];
             }
+        }
+
+        public void ApplyCirclesStyle()
+        {
+            IndexChange = 5;
+            BarPositions = 256;
+            BarRotation = 0;
+            ShowFullSpectrum = false;
+            StartPositionDisplacement = 0;
+            Magnitude = 1;
+            MaxBarsPerPosition = 4;
+            VisualiserRounds = 5;
+        }
+
+        public void ApplyWelcomeStyle()
+        {
+            IndexChange = 0;
+            BarPositions = 128;
+            BarRotation = 0;
+            ShowFullSpectrum = true;
+            StartPositionDisplacement = 74;
+            Magnitude = 1;
+            MaxBarsPerPosition = 2;
+            VisualiserRounds = 1;
+        }
+
+        public void ApplyTrianglesStyle()
+        {
+            IndexChange = 6;
+            BarPositions = 256;
+            BarRotation = 0;
+            ShowFullSpectrum = false;
+            StartPositionDisplacement = 0;
+            Magnitude = 1;
+            MaxBarsPerPosition = 3;
+            VisualiserRounds = 5;
+        }
+
+        public void ApplyTiltedTrianglesStyle()
+        {
+            IndexChange = 6;
+            BarPositions = 256;
+            BarRotation = -1.5f;
+            ShowFullSpectrum = false;
+            StartPositionDisplacement = -2;
+            Magnitude = 0.5f;
+            MaxBarsPerPosition = 3;
+            VisualiserRounds = 5;
         }
 
         private class VisualisationDrawNode : DrawNode
