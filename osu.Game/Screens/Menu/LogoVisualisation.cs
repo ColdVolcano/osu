@@ -61,6 +61,11 @@ namespace osu.Game.Screens.Menu
         public int BarPositions { get; set; } = 200;
 
         /// <summary>
+        /// Static rotation applied to each bar position to give the appearance of tilting.
+        /// </summary>
+        public float BarRotation { get; set; }
+
+        /// <summary>
         /// Position at which the first bar is rendered, relative to the centre right position.
         /// Positive values will move the first bar counterclockwise.
         /// </summary>
@@ -216,6 +221,7 @@ namespace osu.Game.Screens.Menu
             private int rounds;
             private int maxBarsPerPosition;
             private int barsPerRound;
+            private float barRotation;
 
             private Color4 transparentWhite => Color4.White.Opacity(1f / maxBarsPerPosition);
 
@@ -240,6 +246,7 @@ namespace osu.Game.Screens.Menu
                 rounds = Source.VisualiserRounds;
                 maxBarsPerPosition = Source.MaxBarsPerPosition;
                 barsPerRound = Source.BarsPerVisualiserRound;
+                barRotation = Source.BarRotation;
             }
 
             public override void Draw(Action<TexturedVertex2D> vertexAction)
@@ -262,12 +269,13 @@ namespace osu.Game.Screens.Menu
 
                     for (int i = 0; i < positions; i++)
                     {
-                        float rotation = MathUtils.DegreesToRadians(i * anglePerPosition);
-                        float rotationCos = MathF.Cos(rotation);
-                        float rotationSin = MathF.Sin(rotation);
+                        float positionalRotation = MathUtils.DegreesToRadians(i * anglePerPosition);
+                        float visualRotation = MathUtils.DegreesToRadians(barRotation) + positionalRotation;
+                        float rotationCos = MathF.Cos(visualRotation);
+                        float rotationSin = MathF.Sin(visualRotation);
 
                         // taking the cos and sin to the 0..1 range
-                        var barPosition = new Vector2(MathF.Cos(rotation) / 2 + 0.5f, MathF.Sin(rotation) / 2 + 0.5f) * size;
+                        var barPosition = new Vector2(MathF.Cos(positionalRotation) / 2 + 0.5f, MathF.Sin(positionalRotation) / 2 + 0.5f) * size;
 
                         // The distance between the position and the sides of the bar.
                         var bottomOffset = new Vector2(-rotationSin * barWidth / 2, rotationCos * barWidth / 2);
