@@ -56,6 +56,11 @@ namespace osu.Game.Screens.Menu
         public int IndexChange { get; set; } = 5;
 
         /// <summary>
+        /// The number of bars in one rotation of the visualiser.
+        /// </summary>
+        public int BarPositions { get; set; } = 200;
+
+        /// <summary>
         /// The relative movement of bars based on input amplification. Defaults to 1.
         /// </summary>
         public float Magnitude { get; set; } = 1;
@@ -68,16 +73,19 @@ namespace osu.Game.Screens.Menu
         public int MaxBarsPerPosition { get; set; } = 4;
 
         /// <summary>
-        /// The number of bars in one rotation of the visualiser.
+        /// Continue rendering bars for a given visualiser round after it has filled all possible positions, overlapping itself in the process.
+        /// This has no effect if <see cref="BarPositions"/> is higher than <see cref="ChannelAmplitudes.AMPLITUDES_SIZE"/>.
         /// </summary>
-        public int PositionsPerVisualiserRound { get; set; } = 200;
+        public bool ShowFullSpectrum { get; set; }
 
         /// <summary>
         /// How many times we should stretch around the circumference (overlapping overselves).
         /// </summary>
         public int VisualiserRounds { get; set; } = 5;
 
-        private readonly float[] frequencyAmplitudes = new float[256];
+        public int BarsPerVisualiserRound => ShowFullSpectrum ? ChannelAmplitudes.AMPLITUDES_SIZE : Math.Min(BarPositions, ChannelAmplitudes.AMPLITUDES_SIZE);
+
+        private readonly float[] frequencyAmplitudes = new float[ChannelAmplitudes.AMPLITUDES_SIZE];
 
         private int indexOffset;
 
@@ -135,15 +143,15 @@ namespace osu.Game.Screens.Menu
             foreach (var source in amplitudeSources)
                 addAmplitudesFromSource(source);
 
-            for (int i = 0; i < PositionsPerVisualiserRound; i++)
+            for (int i = 0; i < temporalAmplitudes.Length; i++)
             {
-                float targetAmplitude = (temporalAmplitudes[(i + indexOffset) % PositionsPerVisualiserRound]) * (effect?.KiaiMode == true ? 1 : 0.5f) * Magnitude;
+                float targetAmplitude = temporalAmplitudes[(i + indexOffset) % BarsPerVisualiserRound] * (effect?.KiaiMode == true ? 1 : 0.5f) * Magnitude;
                 if (targetAmplitude > frequencyAmplitudes[i])
                     frequencyAmplitudes[i] = targetAmplitude;
             }
 
             if (IndexChange != 0)
-                indexOffset = (indexOffset + IndexChange) % PositionsPerVisualiserRound;
+                indexOffset = (indexOffset + IndexChange) % BarsPerVisualiserRound;
             else
                 indexOffset = 0;
         }
@@ -162,7 +170,7 @@ namespace osu.Game.Screens.Menu
 
             float decayFactor = (float)Time.Elapsed * decay_per_milisecond;
 
-            for (int i = 0; i < PositionsPerVisualiserRound; i++)
+            for (int i = 0; i < frequencyAmplitudes.Length; i++)
             {
                 //3% of extra bar length to make it a little faster when bar is almost at it's minimum
                 frequencyAmplitudes[i] -= decayFactor * (frequencyAmplitudes[i] + 0.03f);
@@ -200,6 +208,7 @@ namespace osu.Game.Screens.Menu
             private int positions;
             private int rounds;
             private int maxBarsPerPosition;
+            private int barsPerRound;
 
             private Color4 transparentWhite => Color4.White.Opacity(1f / maxBarsPerPosition);
 
@@ -220,9 +229,10 @@ namespace osu.Game.Screens.Menu
                 texture = Source.texture;
                 size = Source.DrawSize.X;
                 audioData = Source.frequencyAmplitudes;
-                positions = Source.PositionsPerVisualiserRound;
+                positions = Source.BarPositions;
                 rounds = Source.VisualiserRounds;
                 maxBarsPerPosition = Source.MaxBarsPerPosition;
+                barsPerRound = Source.BarsPerVisualiserRound;
             }
 
             public override void Draw(Action<TexturedVertex2D> vertexAction)
@@ -261,19 +271,22 @@ namespace osu.Game.Screens.Menu
                         //picking the longest bars that would fall into this specific rotation...
                         for (int j = 0; j < rounds; j++)
                         {
-                            float targetData = audioData[(i + j * positions / rounds) % positions];
-
-                            if (targetData < amplitude_dead_zone)
-                                continue;
-
-                            for (int d = 0; d < dataInPosition.Length; d++)
+                            for (int k = (i + j * positions / rounds) % barsPerRound; k < barsPerRound; k += positions)
                             {
-                                if (!(targetData > dataInPosition[d])) continue;
+                                float targetData = audioData[k];
 
-                                for (int l = dataInPosition.Length - 1; l > d; l--)
-                                    dataInPosition[l] = dataInPosition[l - 1];
-                                dataInPosition[d] = targetData;
-                                break;
+                                if (targetData < amplitude_dead_zone)
+                                    continue;
+
+                                for (int d = 0; d < dataInPosition.Length; d++)
+                                {
+                                    if (!(targetData > dataInPosition[d])) continue;
+
+                                    for (int l = dataInPosition.Length - 1; l > d; l--)
+                                        dataInPosition[l] = dataInPosition[l - 1];
+                                    dataInPosition[d] = targetData;
+                                    break;
+                                }
                             }
                         }
 
