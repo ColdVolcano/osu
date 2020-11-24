@@ -31,24 +31,9 @@ namespace osu.Game.Screens.Menu
         private readonly IBindable<WorkingBeatmap> beatmap = new Bindable<WorkingBeatmap>();
 
         /// <summary>
-        /// The number of bars to jump each update iteration.
-        /// </summary>
-        private const int index_change = 5;
-
-        /// <summary>
         /// The maximum length of each bar in the visualiser. Will be reduced when kiai is not activated.
         /// </summary>
         private const float bar_length = 600;
-
-        /// <summary>
-        /// The number of bars in one rotation of the visualiser.
-        /// </summary>
-        private const int bars_per_visualiser = 200;
-
-        /// <summary>
-        /// How many times we should stretch around the circumference (overlapping overselves).
-        /// </summary>
-        private const int visualiser_rounds = 5;
 
         /// <summary>
         /// How much should each bar go down each millisecond (based on a full bar).
@@ -65,21 +50,50 @@ namespace osu.Game.Screens.Menu
         /// </summary>
         private const float amplitude_dead_zone = 1f / bar_length;
 
-        private int indexOffset;
+        /// <summary>
+        /// The number of bars to jump each update iteration.
+        /// </summary>
+        public int IndexChange { get; set; } = 5;
 
         /// <summary>
         /// The relative movement of bars based on input amplification. Defaults to 1.
         /// </summary>
         public float Magnitude { get; set; } = 1;
 
+        /// <summary>
+        /// The number of bars in one rotation of the visualiser.
+        /// </summary>
+        public int PositionsPerVisualiserRound { get; set; } = 200;
+
+        /// <summary>
+        /// How many times we should stretch around the circumference (overlapping overselves).
+        /// </summary>
+        public int VisualiserRounds { get; set; } = 5;
+
         private readonly float[] frequencyAmplitudes = new float[256];
 
+        private int indexOffset;
+
         private IShader shader;
-        private readonly Texture texture;
+        private Texture texture = Texture.WhitePixel;
+
+        public Texture Texture
+        {
+            get => texture;
+            set
+            {
+                if (value == null)
+                {
+                    texture = Texture.WhitePixel;
+                    return;
+                }
+
+                texture = value;
+            }
+        }
 
         public LogoVisualisation()
         {
-            texture = Texture.WhitePixel;
             Blending = BlendingParameters.Additive;
         }
 
@@ -114,14 +128,14 @@ namespace osu.Game.Screens.Menu
             foreach (var source in amplitudeSources)
                 addAmplitudesFromSource(source);
 
-            for (int i = 0; i < bars_per_visualiser; i++)
+            for (int i = 0; i < PositionsPerVisualiserRound; i++)
             {
-                float targetAmplitude = (temporalAmplitudes[(i + indexOffset) % bars_per_visualiser]) * (effect?.KiaiMode == true ? 1 : 0.5f);
+                float targetAmplitude = (temporalAmplitudes[(i + indexOffset) % PositionsPerVisualiserRound]) * (effect?.KiaiMode == true ? 1 : 0.5f);
                 if (targetAmplitude > frequencyAmplitudes[i])
                     frequencyAmplitudes[i] = targetAmplitude;
             }
 
-            indexOffset = (indexOffset + index_change) % bars_per_visualiser;
+            indexOffset = (indexOffset + IndexChange) % PositionsPerVisualiserRound;
         }
 
         protected override void LoadComplete()
@@ -138,7 +152,7 @@ namespace osu.Game.Screens.Menu
 
             float decayFactor = (float)Time.Elapsed * decay_per_milisecond;
 
-            for (int i = 0; i < bars_per_visualiser; i++)
+            for (int i = 0; i < PositionsPerVisualiserRound; i++)
             {
                 //3% of extra bar length to make it a little faster when bar is almost at it's minimum
                 frequencyAmplitudes[i] -= decayFactor * (frequencyAmplitudes[i] + 0.03f);
@@ -173,6 +187,8 @@ namespace osu.Game.Screens.Menu
 
             // Assuming the logo is a circle, we don't need a second dimension.
             private float size;
+            private int positions;
+            private int rounds;
             private float magnitude;
 
             private static readonly Color4 transparent_white = Color4.White.Opacity(0.2f);
@@ -194,6 +210,8 @@ namespace osu.Game.Screens.Menu
                 texture = Source.texture;
                 size = Source.DrawSize.X;
                 audioData = Source.frequencyAmplitudes;
+                positions = Source.PositionsPerVisualiserRound;
+                rounds = Source.VisualiserRounds;
                 magnitude = Source.Magnitude;
             }
 
@@ -207,15 +225,15 @@ namespace osu.Game.Screens.Menu
 
                 if (audioData != null)
                 {
-                    float barWidth = size * MathF.Sqrt(2 * (1 - MathF.Cos(MathUtils.DegreesToRadians(360f / bars_per_visualiser)))) / 2f;
-                    const float angle_per_bar = 360f / bars_per_visualiser;
+                    float barWidth = size * MathF.Sqrt(2 * (1 - MathF.Cos(MathUtils.DegreesToRadians(360f / positions)))) / 2f;
+                    float anglePerPosition = 360f / positions;
 
                     ColourInfo colourInfo = DrawColourInfo.Colour;
                     colourInfo.ApplyChild(transparent_white);
 
-                    for (int i = 0; i < bars_per_visualiser; i++)
+                    for (int i = 0; i < positions; i++)
                     {
-                        float rotation = MathUtils.DegreesToRadians(i * angle_per_bar);
+                        float rotation = MathUtils.DegreesToRadians(i * anglePerPosition);
                         float rotationCos = MathF.Cos(rotation);
                         float rotationSin = MathF.Sin(rotation);
 
@@ -226,7 +244,7 @@ namespace osu.Game.Screens.Menu
                         var bottomOffset = new Vector2(-rotationSin * barWidth / 2, rotationCos * barWidth / 2);
 
                         //picking bars that would fall into this specific rotation...
-                        for (int j = 0; j < visualiser_rounds; j++)
+                        for (int j = 0; j < rounds; j++)
                         {
                             float targetData = audioData[(i + j * positions / rounds) % positions] * magnitude;
 
