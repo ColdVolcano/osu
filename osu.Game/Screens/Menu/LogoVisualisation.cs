@@ -61,6 +61,12 @@ namespace osu.Game.Screens.Menu
         public float Magnitude { get; set; } = 1;
 
         /// <summary>
+        /// Maximum number of bars that can occupy a single visualiser position.
+        /// If there are more bars in one position than this, only the longer ones will be rendered.
+        /// </summary>
+        public int MaxBarsPerPosition { get; set; } = 4;
+
+        /// <summary>
         /// The number of bars in one rotation of the visualiser.
         /// </summary>
         public int PositionsPerVisualiserRound { get; set; } = 200;
@@ -190,6 +196,7 @@ namespace osu.Game.Screens.Menu
             private int positions;
             private int rounds;
             private float magnitude;
+            private int maxBarsPerPosition;
 
             private static readonly Color4 transparent_white = Color4.White.Opacity(0.2f);
 
@@ -213,6 +220,7 @@ namespace osu.Game.Screens.Menu
                 positions = Source.PositionsPerVisualiserRound;
                 rounds = Source.VisualiserRounds;
                 magnitude = Source.Magnitude;
+                maxBarsPerPosition = Source.MaxBarsPerPosition;
             }
 
             public override void Draw(Action<TexturedVertex2D> vertexAction)
@@ -227,6 +235,8 @@ namespace osu.Game.Screens.Menu
                 {
                     float barWidth = size * MathF.Sqrt(2 * (1 - MathF.Cos(MathUtils.DegreesToRadians(360f / positions)))) / 2f;
                     float anglePerPosition = 360f / positions;
+
+                    float[] dataInPosition = new float[maxBarsPerPosition];
 
                     ColourInfo colourInfo = DrawColourInfo.Colour;
                     colourInfo.ApplyChild(transparent_white);
@@ -243,7 +253,10 @@ namespace osu.Game.Screens.Menu
                         // The distance between the position and the sides of the bar.
                         var bottomOffset = new Vector2(-rotationSin * barWidth / 2, rotationCos * barWidth / 2);
 
-                        //picking bars that would fall into this specific rotation...
+                        for (int j = 0; j < dataInPosition.Length; j++)
+                            dataInPosition[j] = 0;
+
+                        //picking the longest bars that would fall into this specific rotation...
                         for (int j = 0; j < rounds; j++)
                         {
                             float targetData = audioData[(i + j * positions / rounds) % positions] * magnitude;
@@ -251,7 +264,20 @@ namespace osu.Game.Screens.Menu
                             if (targetData < amplitude_dead_zone)
                                 continue;
 
-                            var barHeight = bar_length * targetData;
+                            for (int d = 0; d < dataInPosition.Length; d++)
+                            {
+                                if (!(targetData > dataInPosition[d])) continue;
+
+                                for (int l = dataInPosition.Length - 1; l > d; l--)
+                                    dataInPosition[l] = dataInPosition[l - 1];
+                                dataInPosition[d] = targetData;
+                                break;
+                            }
+                        }
+
+                        foreach (float d in dataInPosition)
+                        {
+                            var barHeight = bar_length * d;
 
                             // The distance between the bottom side of the bar and the top side.
                             var amplitudeOffset = new Vector2(rotationCos * barHeight, rotationSin * barHeight);
