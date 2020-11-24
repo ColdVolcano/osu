@@ -173,6 +173,7 @@ namespace osu.Game.Screens.Menu
 
             // Assuming the logo is a circle, we don't need a second dimension.
             private float size;
+            private float magnitude;
 
             private static readonly Color4 transparent_white = Color4.White.Opacity(0.2f);
 
@@ -193,6 +194,7 @@ namespace osu.Game.Screens.Menu
                 texture = Source.texture;
                 size = Source.DrawSize.X;
                 audioData = Source.frequencyAmplitudes;
+                magnitude = Source.Magnitude;
             }
 
             public override void Draw(Action<TexturedVertex2D> vertexAction)
@@ -226,7 +228,7 @@ namespace osu.Game.Screens.Menu
                         //picking bars that would fall into this specific rotation...
                         for (int j = 0; j < visualiser_rounds; j++)
                         {
-                            float targetData = audioData[(i + j * bars_per_visualiser / visualiser_rounds) % bars_per_visualiser];
+                            float targetData = audioData[(i + j * positions / rounds) % positions] * magnitude;
 
                             if (targetData < amplitude_dead_zone)
                                 continue;
