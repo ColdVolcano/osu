@@ -137,7 +137,7 @@ namespace osu.Game.Screens.Menu
 
             for (int i = 0; i < PositionsPerVisualiserRound; i++)
             {
-                float targetAmplitude = (temporalAmplitudes[(i + indexOffset) % PositionsPerVisualiserRound]) * (effect?.KiaiMode == true ? 1 : 0.5f);
+                float targetAmplitude = (temporalAmplitudes[(i + indexOffset) % PositionsPerVisualiserRound]) * (effect?.KiaiMode == true ? 1 : 0.5f) * Magnitude;
                 if (targetAmplitude > frequencyAmplitudes[i])
                     frequencyAmplitudes[i] = targetAmplitude;
             }
@@ -196,7 +196,6 @@ namespace osu.Game.Screens.Menu
             private float size;
             private int positions;
             private int rounds;
-            private float magnitude;
             private int maxBarsPerPosition;
 
             private Color4 transparentWhite => Color4.White.Opacity(1f / maxBarsPerPosition);
@@ -220,7 +219,6 @@ namespace osu.Game.Screens.Menu
                 audioData = Source.frequencyAmplitudes;
                 positions = Source.PositionsPerVisualiserRound;
                 rounds = Source.VisualiserRounds;
-                magnitude = Source.Magnitude;
                 maxBarsPerPosition = Source.MaxBarsPerPosition;
             }
 
@@ -260,7 +258,7 @@ namespace osu.Game.Screens.Menu
                         //picking the longest bars that would fall into this specific rotation...
                         for (int j = 0; j < rounds; j++)
                         {
-                            float targetData = audioData[(i + j * positions / rounds) % positions] * magnitude;
+                            float targetData = audioData[(i + j * positions / rounds) % positions];
 
                             if (targetData < amplitude_dead_zone)
                                 continue;
